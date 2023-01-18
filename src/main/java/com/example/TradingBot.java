@@ -9,9 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.UUID;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 
 public class TradingBot {
     private static final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
@@ -20,7 +17,7 @@ public class TradingBot {
 
     public static void main(String[] args) {
         logger.info("Starting the application");
-        try (final var credentialsResource = TradingBot.class.getResourceAsStream("/credentials/default.json")) {
+        try (final var credentialsResource = TradingBot.class.getResourceAsStream("/credentials/player1.json")) {
             final var credentials = objectMapper.readValue(credentialsResource, Credentials.class);
             final var platform= new Hackathon(credentials);
             final var fetchetedInstruments = platform.instruments();
@@ -33,7 +30,7 @@ public class TradingBot {
                 }
                 final var selectForBuy = instruments.available().stream().findFirst().get();
                 final var buyRequest = new SubmitOrderRequest.Buy(selectForBuy.symbol(), UUID.randomUUID().toString(),1,93);
-                final var orderResponse = platform.submit(buyRequest);
+                //final var orderResponse = platform.submit(buyRequest);
                 final var history = platform.history(new HistoryRequest(selectForBuy));
                 if(history instanceof HistoryResponse.History correct){
                     //for(final var bought:correct.bought())
