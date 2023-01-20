@@ -55,7 +55,7 @@ public class InstrumentDestroyer implements Runnable {
                 final var history = platform.history(new HistoryRequest(instrument));
 
                 if (history instanceof HistoryResponse.History correct) {
-
+                    final long bid;
                     final long orderSum = correct
                             .bought()
                             .stream()
@@ -66,8 +66,10 @@ public class InstrumentDestroyer implements Runnable {
                             .stream()
                             .mapToLong(b->b.offer().qty())
                             .sum();
-                    if (orderCount == 0) continue;
-                    final long bid = orderSum/orderCount<minBid?minBid:(long) (1.1*orderSum/orderCount);
+                    if ((orderCount == 0) || ( orderSum/orderCount<minBid))
+                        bid = minBid;
+                    else
+                        bid = (long) (1.1*orderSum/orderCount);
 
 
                     final var qty = 1+rg.nextInt((int) (portfolio.cash() / (10 *bid)));
