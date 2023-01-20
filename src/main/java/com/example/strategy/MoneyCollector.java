@@ -10,9 +10,10 @@ import java.util.UUID;
 
 public class MoneyCollector implements Runnable {
 
-    private static final long minQty = 5;
+    private static final long minQty = 10;
     private static final long minAsk = 15;
     private static final long minBid = 79;
+    private static final long minCashForBuy = 10000;
 
     private static final int averageCount = 20;
 
@@ -53,35 +54,35 @@ public class MoneyCollector implements Runnable {
                     .stream()
                     .filter(pe -> rg.nextDouble() < 0.10)
                     .toList();
+            if(portfolio.cash()>minCashForBuy)
+                for (final var instrument : selectedForBuy) {
+                    //logger.info("My cash {}",portfolio.cash());
+                    final var history = platform.history(new HistoryRequest(instrument));
 
-            for (final var instrument : selectedForBuy) {
-                //logger.info("My cash {}",portfolio.cash());
-                final var history = platform.history(new HistoryRequest(instrument));
+                    if (history instanceof HistoryResponse.History correct) {
 
-                if (history instanceof HistoryResponse.History correct) {
-
-                    final long orderSum = correct
-                                    .bought()
-                                    .stream()
-                                    .limit(averageCount)
-                                    .mapToLong(b->b.offer().price()*b.offer().qty())
-                                    .sum();
-                    final long orderCount = correct
-                                    .bought()
-                                    .stream()
-                                    .limit(averageCount)
-                                    .mapToLong(b->b.offer().qty())
-                                    .sum();
-                    if (orderCount == 0) continue;
-                    final long bid = orderSum/orderCount<10?minBid:(long) (0.9*orderSum/orderCount);
+                        final long orderSum = correct
+                                        .bought()
+                                        .stream()
+                                        .limit(averageCount)
+                                        .mapToLong(b->b.offer().price()*b.offer().qty())
+                                        .sum();
+                        final long orderCount = correct
+                                        .bought()
+                                        .stream()
+                                        .limit(averageCount)
+                                        .mapToLong(b->b.offer().qty())
+                                        .sum();
+                        if (orderCount == 0) continue;
+                        final long bid = (long) (0.9*orderSum/orderCount);
 
 
-                    final var qty = 1+rg.nextInt((int) (portfolio.cash() / (10 *bid)));
+                        final var qty = 1+rg.nextInt((int) (portfolio.cash() / (10 *bid)));
 
-                    final var buyRequest = new SubmitOrderRequest.Buy(instrument.symbol(), UUID.randomUUID().toString(), qty, bid);
-                    final var orderResponse = platform.submit(buyRequest);
+                        final var buyRequest = new SubmitOrderRequest.Buy(instrument.symbol(), UUID.randomUUID().toString(), qty, bid);
+                        final var orderResponse = platform.submit(buyRequest);
 
-                    logger.info("order {} placed with response {}", buyRequest, orderResponse);
+                        logger.info("order {} placed with response {}", buyRequest, orderResponse);
 
                 }
             }
@@ -90,7 +91,7 @@ public class MoneyCollector implements Runnable {
             final var selectedElementForSell = portfolio
                     .portfolio()
                     .stream()
-                    .filter(pe -> rg.nextDouble() < 0.20 && pe.qty()>0)
+                    .filter(pe -> rg.nextDouble() < 0.30 && pe.qty()>0)
                     .toList();
 
             for (final var element : selectedElementForSell) {
@@ -111,7 +112,7 @@ public class MoneyCollector implements Runnable {
                             .mapToLong(b->b.offer().qty())
                             .sum();
                     if (orderCount == 0) continue;
-                    final long ask = 1.1*orderSum/orderCount<minAsk ? minAsk:(long) (1.1*orderSum/orderCount);
+                    final long ask = (long) (1.1*orderSum/orderCount);
 
                     final long qty = Math.min(element.qty(), minQty);
 
