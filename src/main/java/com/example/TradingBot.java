@@ -3,6 +3,7 @@ package com.example;
 import com.example.model.rest.*;
 import com.example.model.security.Credentials;
 import com.example.platform.Hackathon;
+import com.example.strategy.InstrumentDestroyer;
 import com.example.strategy.MoneyCollector;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
