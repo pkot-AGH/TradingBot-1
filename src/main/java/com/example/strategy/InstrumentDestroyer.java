@@ -39,11 +39,6 @@ public class InstrumentDestroyer implements Runnable {
 
         if (fetchedPortfolio instanceof PortfolioResponse.Portfolio portfolio && fetchedInstruments instanceof InstrumentsResponse.Instruments instruments) {
             logger.info("My cash {}",portfolio.cash());
-            //for (final var element : portfolio.portfolio()) {
-            //    final var instrument = element.instrument();
-            //    final var orders = platform.history(new HistoryRequest(instrument));
-            //    logger.info("instrument {} has orders {}", instrument, orders);
-            //}
 
             final var selectedForBuy = instruments
                     .available()
@@ -57,12 +52,12 @@ public class InstrumentDestroyer implements Runnable {
                 if (history instanceof HistoryResponse.History correct) {
                     final long bid;
                     final long orderSum = correct
-                            .bought()
+                            .sold()
                             .stream()
                             .mapToLong(b->b.offer().price()*b.offer().qty())
                             .sum();
                     final long orderCount = correct
-                            .bought()
+                            .sold()
                             .stream()
                             .mapToLong(b->b.offer().qty())
                             .sum();

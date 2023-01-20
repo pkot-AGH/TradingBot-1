@@ -42,11 +42,6 @@ public class MoneyCollector implements Runnable {
 
         if (fetchedPortfolio instanceof PortfolioResponse.Portfolio portfolio && fetchedInstruments instanceof InstrumentsResponse.Instruments instruments) {
             logger.info("My cash {}",portfolio.cash());
-            //for (final var element : portfolio.portfolio()) {
-            //    final var instrument = element.instrument();
-            //    final var orders = platform.history(new HistoryRequest(instrument));
-            //    logger.info("instrument {} has orders {}", instrument, orders);
-            //}
 
 
             final var selectedForBuy = instruments
@@ -62,19 +57,19 @@ public class MoneyCollector implements Runnable {
                     if (history instanceof HistoryResponse.History correct) {
 
                         final long orderSum = correct
-                                        .bought()
+                                        .sold()
                                         .stream()
                                         .limit(averageCount)
                                         .mapToLong(b->b.offer().price()*b.offer().qty())
                                         .sum();
                         final long orderCount = correct
-                                        .bought()
+                                        .sold()
                                         .stream()
                                         .limit(averageCount)
                                         .mapToLong(b->b.offer().qty())
                                         .sum();
                         if (orderCount == 0) continue;
-                        final long bid = (long) (0.9*orderSum/orderCount);
+                        final long bid = (long) (orderSum/orderCount);
 
 
                         final var qty = 1+rg.nextInt((int) (portfolio.cash() / (10 *bid)));
