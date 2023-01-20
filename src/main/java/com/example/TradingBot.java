@@ -3,6 +3,7 @@ package com.example;
 import com.example.model.rest.*;
 import com.example.model.security.Credentials;
 import com.example.platform.Hackathon;
+import com.example.strategy.MoneyCollector;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.slf4j.Logger;
@@ -26,9 +27,9 @@ public class TradingBot {
             final var credentials = objectMapper.readValue(credentialsResource, Credentials.class);
             final var marketPlugin = new Hackathon(credentials);
 
-            final var ordersController = new com.example.OrdersController(marketPlugin);
+            final var ordersController = new MoneyCollector(marketPlugin);
 
-            final var beeperHandle = scheduler.scheduleAtFixedRate(ordersController, 1, 10, SECONDS);
+            final var beeperHandle = scheduler.scheduleAtFixedRate(ordersController, 1, 5, SECONDS);
         } catch (Exception exception) {
             logger.error("Something bad happened", exception);
         }
@@ -52,7 +53,7 @@ public class TradingBot {
                 //final var orderResponse = platform.submit(sellRequest);
                 final var fetchedProcessed = platform.processed();
                 final var fetchedSubmited = platform.submitted();
-                //final var history = platform.history(new HistoryRequest(selectForSell));
+                final var history = platform.history(new HistoryRequest(selectForSell));
                 if(fetchedProcessed instanceof ProcessedResponse.Processed processed){
                     for(final var process:processed.bought())
                         logger.info("{}",process);
@@ -67,14 +68,14 @@ public class TradingBot {
                     for(final var sell:submited.sell())
                         logger.info("{}",sell);
                 }
-                //if(history instanceof HistoryResponse.History correct){
-                //    //for(final var bought:correct.bought())
-                //    //   logger.info("instrument {} bought {}",selectForBuy,bought);
-                //    for(final var bought:correct.bought())
-                //        logger.info("{}",bought);
-                //    for(final var sold:correct.sold())
-                //        logger.info("{}",sold);
-                //}
+                if(history instanceof HistoryResponse.History correct){
+                    //for(final var bought:correct.bought())
+                    //   logger.info("instrument {} bought {}",selectForBuy,bought);
+                    for(final var bought:correct.bought())
+                        logger.info("{}",bought);
+                    for(final var sold:correct.sold())
+                        logger.info("{}",sold);
+                }
 
             }
 
