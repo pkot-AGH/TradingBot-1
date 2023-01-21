@@ -41,7 +41,7 @@ public class MoneyCollector implements Runnable {
         }
 
         if (fetchedPortfolio instanceof PortfolioResponse.Portfolio portfolio && fetchedInstruments instanceof InstrumentsResponse.Instruments instruments) {
-            logger.info("My cash {}",portfolio.cash());
+            logger.info("My money {}",portfolio.cash());
 
 
             final var selectedForBuy = instruments
@@ -55,7 +55,7 @@ public class MoneyCollector implements Runnable {
                     final var history = platform.history(new HistoryRequest(instrument));
 
                     if (history instanceof HistoryResponse.History correct) {
-
+                        final long bid;
                         final long orderSum = correct
                                         .sold()
                                         .stream()
@@ -68,8 +68,10 @@ public class MoneyCollector implements Runnable {
                                         .limit(averageCount)
                                         .mapToLong(b->b.offer().qty())
                                         .sum();
-                        if (orderCount == 0) continue;
-                        final long bid = (long) (orderSum/orderCount);
+                        if (orderCount == 0)
+                            bid = minBid;
+                        else
+                            bid = (long) (orderSum/orderCount);
 
 
                         final var qty = 1+rg.nextInt((int) (portfolio.cash() / (10 *bid)));
@@ -92,7 +94,7 @@ public class MoneyCollector implements Runnable {
 
             for (final var element : selectedElementForSell) {
                 final var history = platform.history(new HistoryRequest(element.instrument()));
-
+                final long ask;
                 if (history instanceof HistoryResponse.History correct) {
 
                     final long orderSum = correct
@@ -107,15 +109,17 @@ public class MoneyCollector implements Runnable {
                             .limit(averageCount)
                             .mapToLong(b->b.offer().qty())
                             .sum();
-                    if (orderCount == 0) continue;
-                    final long ask = (long) (orderSum/orderCount);
+                    if (orderCount == 0)
+                        ask = minAsk;
+                    else
+                        ask = (long) (0.9*orderSum/orderCount);
 
                     final long qty = Math.min(element.qty(), minQty);
 
                     final var sellRequest = new SubmitOrderRequest.Sell(element.instrument().symbol(), UUID.randomUUID().toString(), qty, ask);
                     final var orderResponse = platform.submit(sellRequest);
 
-                    logger.info("{}: (symbol={} qty={} bid={}) -> {}",
+                    logger.info("{}: (symbol={} qty={} ask={}) -> {}",
                             sellRequest.getClass().getSimpleName(),sellRequest.symbol(),sellRequest.qty(),sellRequest.ask(), orderResponse.getClass().getSimpleName());
                 }
             }

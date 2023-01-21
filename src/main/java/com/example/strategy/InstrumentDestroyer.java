@@ -11,7 +11,7 @@ import java.util.UUID;
 public class InstrumentDestroyer implements Runnable {
 
     private static final long minQty = 5;
-    private static final long minAsk = 13;
+    private static final long minAsk = 15;
     private static final long minBid = 79;
 
     private static final int limitForBoughtCount = 50;
@@ -40,7 +40,7 @@ public class InstrumentDestroyer implements Runnable {
         }
 
         if (fetchedPortfolio instanceof PortfolioResponse.Portfolio portfolio && fetchedInstruments instanceof InstrumentsResponse.Instruments instruments) {
-            logger.info("My cash {}",portfolio.cash());
+            logger.info("My money {}",portfolio.cash());
 
             final var selectedForBuy = instruments
                     .available()
@@ -90,7 +90,7 @@ public class InstrumentDestroyer implements Runnable {
                 final var history = platform.history(new HistoryRequest(element.instrument()));
 
                 if (history instanceof HistoryResponse.History correct) {
-
+                    final long ask;
                     final long orderSum = correct
                             .bought()
                             .stream()
@@ -103,15 +103,18 @@ public class InstrumentDestroyer implements Runnable {
                             .limit(limitForBoughtCount)
                             .mapToLong(b->b.offer().qty())
                             .sum();
-                    if (orderCount == 0) continue;
-                    final long ask = (long) (0.9*orderSum/orderCount);
+
+                    if (orderCount == 0)
+                        ask = minAsk;
+                    else
+                        ask = (long) (0.9*orderSum/orderCount);
 
                     final long qty = Math.min(element.qty(), minQty);
 
                     final var sellRequest = new SubmitOrderRequest.Sell(element.instrument().symbol(), UUID.randomUUID().toString(), qty, ask);
                     final var orderResponse = platform.submit(sellRequest);
 
-                    logger.info("{}: (symbol={} qty={} bid={}) -> {}",
+                    logger.info("{}: (symbol={} qty={} ask={}) -> {}",
                             sellRequest.getClass().getSimpleName(),sellRequest.symbol(),sellRequest.qty(),sellRequest.ask(), orderResponse.getClass().getSimpleName());
 
                 }
