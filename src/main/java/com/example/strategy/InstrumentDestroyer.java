@@ -61,7 +61,7 @@ public class InstrumentDestroyer implements Runnable {
                             .stream()
                             .mapToLong(b->b.offer().qty())
                             .sum();
-                    if ((orderCount == 0) || ( orderSum/orderCount<minBid))
+                    if (orderCount == 0)
                         bid = minBid;
                     else
                         bid = (long) (1.1*orderSum/orderCount);
@@ -71,7 +71,8 @@ public class InstrumentDestroyer implements Runnable {
                     final var buyRequest = new SubmitOrderRequest.Buy(instrument.symbol(), UUID.randomUUID().toString(), qty, bid);
                     final var orderResponse = platform.submit(buyRequest);
 
-                    logger.info("order {} placed with response {}", buyRequest, orderResponse);
+                    logger.info("{}: (symbol={} qty={} bid={}) -> {}",
+                            buyRequest.getClass().getSimpleName(),buyRequest.symbol(),buyRequest.qty(),buyRequest.bid(), orderResponse.getClass().getSimpleName());
                 }
             }
 
@@ -99,14 +100,15 @@ public class InstrumentDestroyer implements Runnable {
                             .mapToLong(b->b.offer().qty())
                             .sum();
                     if (orderCount == 0) continue;
-                    final long ask = 0.9*orderSum/orderCount<minAsk ? minAsk:(long) (0.9*orderSum/orderCount);
+                    final long ask = (long) (0.9*orderSum/orderCount);
 
                     final long qty = Math.min(element.qty(), minQty);
 
                     final var sellRequest = new SubmitOrderRequest.Sell(element.instrument().symbol(), UUID.randomUUID().toString(), qty, ask);
                     final var orderResponse = platform.submit(sellRequest);
 
-                    logger.info("order {} placed with response {}", sellRequest, orderResponse);
+                    logger.info("{}: (symbol={} qty={} bid={}) -> {}",
+                            sellRequest.getClass().getSimpleName(),sellRequest.symbol(),sellRequest.qty(),sellRequest.ask(), orderResponse.getClass().getSimpleName());
 
                 }
             }

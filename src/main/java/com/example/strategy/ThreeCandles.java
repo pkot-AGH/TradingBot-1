@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Random;
 import java.util.UUID;
 
-public class MoneyCollector implements Runnable {
+public class ThreeCandles implements Runnable {
 
     private static final long minQty = 5;
     private static final long minAsk = 15;
@@ -17,13 +17,13 @@ public class MoneyCollector implements Runnable {
 
     private static final int averageCount = 20;
 
-    private static final Logger logger = LoggerFactory.getLogger(MoneyCollector.class);
+    private static final Logger logger = LoggerFactory.getLogger(ThreeCandles.class);
 
     private final Platform platform;
 
     private static final Random rg = new Random();
 
-    public MoneyCollector(Platform platform) {
+    public ThreeCandles(Platform platform) {
         this.platform = platform;
     }
 
@@ -51,7 +51,7 @@ public class MoneyCollector implements Runnable {
                     .toList();
             if(portfolio.cash()>minCashForBuy)
                 for (final var instrument : selectedForBuy) {
-
+                    //logger.info("My cash {}",portfolio.cash());
                     final var history = platform.history(new HistoryRequest(instrument));
 
                     if (history instanceof HistoryResponse.History correct) {
@@ -77,8 +77,7 @@ public class MoneyCollector implements Runnable {
                         final var buyRequest = new SubmitOrderRequest.Buy(instrument.symbol(), UUID.randomUUID().toString(), qty, bid);
                         final var orderResponse = platform.submit(buyRequest);
 
-                        logger.info("{}: (symbol={} qty={} bid={}) -> {}",
-                                buyRequest.getClass().getSimpleName(),buyRequest.symbol(),buyRequest.qty(),buyRequest.bid(), orderResponse.getClass().getSimpleName());
+                        logger.info("order {} placed with response {}", buyRequest, orderResponse);
 
                 }
             }
@@ -87,7 +86,7 @@ public class MoneyCollector implements Runnable {
             final var selectedElementForSell = portfolio
                     .portfolio()
                     .stream()
-                    .filter(pe -> rg.nextDouble() < 0.20 && pe.qty()>0)
+                    .filter(pe -> rg.nextDouble() < 0.30 && pe.qty()>0)
                     .toList();
 
             for (final var element : selectedElementForSell) {
@@ -115,8 +114,7 @@ public class MoneyCollector implements Runnable {
                     final var sellRequest = new SubmitOrderRequest.Sell(element.instrument().symbol(), UUID.randomUUID().toString(), qty, ask);
                     final var orderResponse = platform.submit(sellRequest);
 
-                    logger.info("{}: (symbol={} qty={} bid={}) -> {}",
-                            sellRequest.getClass().getSimpleName(),sellRequest.symbol(),sellRequest.qty(),sellRequest.ask(), orderResponse.getClass().getSimpleName());
+                    logger.info("order {} placed with response {}", sellRequest, orderResponse);
                 }
             }
         }
