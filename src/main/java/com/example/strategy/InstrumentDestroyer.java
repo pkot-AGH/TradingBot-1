@@ -14,6 +14,8 @@ public class InstrumentDestroyer implements Runnable {
     private static final long minAsk = 13;
     private static final long minBid = 79;
 
+    private static final int limitForBoughtCount = 50;
+    private static final long minCashForBuy = 10000;
     private static final Logger logger = LoggerFactory.getLogger(InstrumentDestroyer.class);
 
     private final Platform platform;
@@ -45,36 +47,36 @@ public class InstrumentDestroyer implements Runnable {
                     .stream()
                     .filter(pe -> rg.nextDouble() < 0.10)
                     .toList();
+            if(portfolio.cash()>minCashForBuy)
+                for (final var instrument : selectedForBuy) {
+                    final var history = platform.history(new HistoryRequest(instrument));
 
-            for (final var instrument : selectedForBuy) {
-                final var history = platform.history(new HistoryRequest(instrument));
+                    if (history instanceof HistoryResponse.History correct) {
+                        final long bid;
+                        final long orderSum = correct
+                                .sold()
+                                .stream()
+                                .mapToLong(b->b.offer().price()*b.offer().qty())
+                                .sum();
+                        final long orderCount = correct
+                                .sold()
+                                .stream()
+                                .mapToLong(b->b.offer().qty())
+                                .sum();
+                        if (orderCount == 0)
+                            bid = minBid;
+                        else
+                            bid = (long) (1.1*orderSum/orderCount);
+                
 
-                if (history instanceof HistoryResponse.History correct) {
-                    final long bid;
-                    final long orderSum = correct
-                            .sold()
-                            .stream()
-                            .mapToLong(b->b.offer().price()*b.offer().qty())
-                            .sum();
-                    final long orderCount = correct
-                            .sold()
-                            .stream()
-                            .mapToLong(b->b.offer().qty())
-                            .sum();
-                    if (orderCount == 0)
-                        bid = minBid;
-                    else
-                        bid = (long) (1.1*orderSum/orderCount);
+                        final var qty = 1+rg.nextInt((int) (portfolio.cash() / (10 *bid)));
+                        final var buyRequest = new SubmitOrderRequest.Buy(instrument.symbol(), UUID.randomUUID().toString(), qty, bid);
+                        final var orderResponse = platform.submit(buyRequest);
 
-
-                    final var qty = 1+rg.nextInt((int) (portfolio.cash() / (10 *bid)));
-                    final var buyRequest = new SubmitOrderRequest.Buy(instrument.symbol(), UUID.randomUUID().toString(), qty, bid);
-                    final var orderResponse = platform.submit(buyRequest);
-
-                    logger.info("{}: (symbol={} qty={} bid={}) -> {}",
-                            buyRequest.getClass().getSimpleName(),buyRequest.symbol(),buyRequest.qty(),buyRequest.bid(), orderResponse.getClass().getSimpleName());
+                        logger.info("{}: (symbol={} qty={} bid={}) -> {}",
+                                buyRequest.getClass().getSimpleName(),buyRequest.symbol(),buyRequest.qty(),buyRequest.bid(), orderResponse.getClass().getSimpleName());
+                    }
                 }
-            }
 
 
             final var selectedElementForSell = portfolio
@@ -92,11 +94,13 @@ public class InstrumentDestroyer implements Runnable {
                     final long orderSum = correct
                             .bought()
                             .stream()
+                            .limit(limitForBoughtCount)
                             .mapToLong(b->b.offer().price()*b.offer().qty())
                             .sum();
                     final long orderCount = correct
                             .bought()
                             .stream()
+                            .limit(limitForBoughtCount)
                             .mapToLong(b->b.offer().qty())
                             .sum();
                     if (orderCount == 0) continue;
