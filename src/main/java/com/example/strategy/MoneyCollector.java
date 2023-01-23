@@ -11,6 +11,7 @@ import java.util.UUID;
 public class MoneyCollector implements Runnable {
 
     private static final long minQty = 5;
+    private static final long  maxQty = 100;
     private static final long minAsk = 15;
     private static final long minBid = 79;
     private static final long minCashForBuy = 10000;
@@ -74,7 +75,7 @@ public class MoneyCollector implements Runnable {
                             bid = (long) (orderSum/orderCount);
 
 
-                        final var qty = 1+rg.nextInt((int) (portfolio.cash() / (10 *bid)));
+                        final var qty = Math.min(1+rg.nextInt((int) (portfolio.cash() / (10 *bid))),maxQty);
 
                         final var buyRequest = new SubmitOrderRequest.Buy(instrument.symbol(), UUID.randomUUID().toString(), qty, bid);
                         final var orderResponse = platform.submit(buyRequest);

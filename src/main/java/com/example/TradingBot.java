@@ -33,48 +33,13 @@ public class TradingBot {
         try (final var credentialsResource = TradingBot.class.getResourceAsStream("/credentials/player1.json")) {
             final var credentials = objectMapper.readValue(credentialsResource, Credentials.class);
             final var marketPlugin = new Hackathon(credentials);
-
-            if(args.length == 0) {
                 final var ordersController = new MoneyCollector(marketPlugin);
 
                 final var beeperHandle = scheduler.scheduleAtFixedRate(ordersController, 1, 5, SECONDS);
-            }else
-                get_history(marketPlugin);
         } catch (Exception exception) {
             logger.error("Something bad happened", exception);
         }
     }
-    public static void get_history(Platform platform){
-         final var fetchedInstruments = platform.instruments();
-         File csvOutputFile = new File("history.csv");
-         try(PrintWriter pw = new PrintWriter(csvOutputFile)) {
-             if (fetchedInstruments instanceof InstrumentsResponse.Instruments instruments) {
-                 instruments.available().forEach(x -> {
-                     final var fetchedHistory = platform.history(new HistoryRequest(x));
-                     if (fetchedHistory instanceof HistoryResponse.History history) {
-                         history.bought().forEach(z -> pw.println(
-                                 z.created().toString() + "," +
-                                         z.identifier().client().name() + "," +
-                                         "bought" + "," +
-                                         z.instrument().symbol() + "," +
-                                         z.offer().qty() + "," +
-                                         z.offer().price()
-                         ));
-                         history.sold().forEach(z -> pw.println(
-                                 z.created().toString() + "," +
-                                         z.identifier().client().name() + "," +
-                                         "sold" + "," +
-                                         z.instrument().symbol() + "," +
-                                         z.offer().qty() + "," +
-                                         z.offer().price()
-                         ));
 
-                     }
-                 });
-             }
-         }catch(IOException e){
-             e.printStackTrace();
-         }
-    }
 
 }
