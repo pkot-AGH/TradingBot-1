@@ -13,14 +13,14 @@ import static java.util.stream.Collectors.*;
 
 public class InstrumentDestroyer implements Runnable {
 
-    private static final long minQty = 5;
+    private static final long minQty = 10;
     private static final long  maxQty = 100;
-    private static final long minAsk = 15;
+    private static final long minAsk = 60;
     private static final long minBid = 79;
 
-    private static final int limitForAverageSell = 10;
-    private static final int limitForAverageBuy = 10;
-    private static final long minCashForBuy = 10000;
+    private static final int limitForAverageSell = 100;
+    private static final int limitForAverageBuy = 100;
+    private static final long minCashForBuy = 20000;
     private static final Logger logger = LoggerFactory.getLogger(InstrumentDestroyer.class);
 
     private final Platform platform;
@@ -30,15 +30,8 @@ public class InstrumentDestroyer implements Runnable {
     public InstrumentDestroyer(Platform platform) {
         this.platform = platform;
     }
-    public static class OfferStat{
-        long qty;
-        long price;
+    public record OfferStat(long qty,long price){}
 
-        public OfferStat(long qty, long price) {
-            this.qty = qty;
-            this.price = price;
-        }
-    };
     @Override
     public void run() {
         final var fetchedInstruments = platform.instruments();
@@ -60,11 +53,17 @@ public class InstrumentDestroyer implements Runnable {
                     .stream()
                     .filter(pe -> rg.nextDouble() < 0.10)
                     .toList();
+
+            //final var selectedForBuy = instruments
+            //        .available()
+            //        .stream()
+            //        .filter(pe->pe.symbol().equals("SADOVAYA")).toList();
             if(portfolio.cash()>minCashForBuy)
                 for (final var instrument : selectedForBuy) {
                     final var history = platform.history(new HistoryRequest(instrument));
 
                     if (history instanceof HistoryResponse.History correct) {
+                        //logger.info("Try Buy {}:",instrument.symbol());
                         final long bid;
                         if(correct.sold().size() == 0 )
                             bid = minBid;
@@ -75,7 +74,7 @@ public class InstrumentDestroyer implements Runnable {
                                     .map(x-> new OfferStat(x.offer().qty(), x.offer().price())).toList());
                             bid = (long) (1.1*average);
                         }
-                        final var qty = Math.min(1+rg.nextInt((int) (portfolio.cash() / (10 *bid))),maxQty);
+                        final var qty = 1+Math.min((long) rg.nextInt(1+ (int) (portfolio.cash() / (10 *bid))),maxQty);
                         final var buyRequest = new SubmitOrderRequest.Buy(instrument.symbol(), UUID.randomUUID().toString(), qty, bid);
                         final var orderResponse = platform.submit(buyRequest);
 
@@ -85,17 +84,18 @@ public class InstrumentDestroyer implements Runnable {
                 }
 
 
-            final var selectedElementForSell = portfolio
+            final var selectedForSell = portfolio
                     .portfolio()
                     .stream()
-                    .filter(pe -> rg.nextDouble() < 0.20 && pe.qty()>0)
+                    .filter(pe -> rg.nextDouble() < 0.25 && pe.qty()>0)
                     .toList();
 
-            for (final var element : selectedElementForSell) {
+            for (final var element : selectedForSell) {
 
                 final var history = platform.history(new HistoryRequest(element.instrument()));
 
                 if (history instanceof HistoryResponse.History correct) {
+                    //logger.info("Try Sell {}:",element.instrument().symbol());
                     final long ask;
                     if(correct.bought().size() == 0){
                         ask = minAsk;
@@ -120,15 +120,18 @@ public class InstrumentDestroyer implements Runnable {
         }
     }
 
-    public static long trimmedAverage(List<OfferStat> orders){
-        //Map<Long,Long> ordersMap = orders.stream().collect(groupingBy(s-> s.price,Collectors.summingLong(x-> x.qty)));
-        orders.sort(Comparator.comparingLong(x->x.price));
+    public static long trimmedAverage(List<OfferStat> ordersList){
+        OfferStat[] orders = ordersList.toArray(OfferStat[]::new);
+        Arrays.sort(orders,Comparator.comparingLong(x->x.price));
+
+
 
         List<OfferStat> forRemove = new LinkedList<>();
 
-        final long count = orders.stream().mapToLong(a->a.qty).sum();
+
+        final long count = Arrays.stream(orders).mapToLong(a->a.qty).sum();
         final long countRemove = (long) (0.1*count);
-        long minCount = countRemove,maxCountBreak = orders.size()-2*countRemove;
+        long minCount = countRemove,maxCountBreak = count-2*countRemove;
 
         for(OfferStat x:orders){
             if(minCount>0){
@@ -136,7 +139,7 @@ public class InstrumentDestroyer implements Runnable {
                     minCount -= x.qty;
                     forRemove.add(x);
                 }else{
-                    forRemove.add(new OfferStat(x.qty - minCount, x.price));
+                    forRemove.add(new OfferStat(minCount, x.price));
                     minCount = 0;
                 }
             } else{
@@ -153,7 +156,7 @@ public class InstrumentDestroyer implements Runnable {
             }
         }
 
-        return (orders.stream().mapToLong(x->x.qty*x.price).sum()-
-                forRemove.stream().mapToLong(x->x.price*x.qty).sum() )/(orders.size()-2*countRemove);
+        return (Arrays.stream(orders).mapToLong(x->x.qty*x.price).sum()-
+                forRemove.stream().mapToLong(x->x.price*x.qty).sum() )/(count-2*countRemove);
     }
 }

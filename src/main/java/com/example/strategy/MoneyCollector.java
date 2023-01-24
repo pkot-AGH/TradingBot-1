@@ -45,17 +45,23 @@ public class MoneyCollector implements Runnable {
             logger.info("My money {}",portfolio.cash());
 
 
-            final var selectedForBuy = instruments
-                    .available()
-                    .stream()
-                    .filter(pe -> rg.nextDouble() < 0.10)
-                    .toList();
+           final var selectedForBuy = instruments
+                   .available()
+                   .stream()
+                   .filter(pe -> rg.nextDouble() < 0.10)
+                   .toList();
+            //final var selectedForBuy = instruments
+            //        .available()
+            //        .stream()
+            //        .filter(pe->pe.symbol().equals("ECHO")).toList();
+            //
             if(portfolio.cash()>minCashForBuy)
                 for (final var instrument : selectedForBuy) {
 
                     final var history = platform.history(new HistoryRequest(instrument));
 
                     if (history instanceof HistoryResponse.History correct) {
+                        //logger.info("Try Buy {}:",instrument.symbol());
                         final long bid;
                         final long orderSum = correct
                                         .sold()
@@ -75,7 +81,7 @@ public class MoneyCollector implements Runnable {
                             bid = (long) (orderSum/orderCount);
 
 
-                        final var qty = Math.min(1+rg.nextInt((int) (portfolio.cash() / (10 *bid))),maxQty);
+                        final var qty = 1+Math.min((long) rg.nextInt(1+ (int) (portfolio.cash() / (10 *bid))),maxQty);
 
                         final var buyRequest = new SubmitOrderRequest.Buy(instrument.symbol(), UUID.randomUUID().toString(), qty, bid);
                         final var orderResponse = platform.submit(buyRequest);
@@ -97,7 +103,7 @@ public class MoneyCollector implements Runnable {
                 final var history = platform.history(new HistoryRequest(element.instrument()));
                 final long ask;
                 if (history instanceof HistoryResponse.History correct) {
-
+                    //logger.info("Try Sell {}:",element.instrument().symbol());
                     final long orderSum = correct
                             .bought()
                             .stream()

@@ -35,7 +35,7 @@ public class TradingBot {
             final var marketPlugin = new Hackathon(credentials);
                 final var ordersController = new MoneyCollector(marketPlugin);
 
-                final var beeperHandle = scheduler.scheduleAtFixedRate(ordersController, 1, 5, SECONDS);
+                final var beeperHandle = scheduler.scheduleAtFixedRate(ordersController, 1, 15, SECONDS);
         } catch (Exception exception) {
             logger.error("Something bad happened", exception);
         }
