@@ -20,7 +20,7 @@ public class InstrumentDestroyer implements Runnable {
 
     private static final int limitForAverageSell = 100;
     private static final int limitForAverageBuy = 100;
-    private static final long minCashForBuy = 20000;
+    private static final long minCashForBuy = 150000;
     private static final Logger logger = LoggerFactory.getLogger(InstrumentDestroyer.class);
 
     private final Platform platform;
